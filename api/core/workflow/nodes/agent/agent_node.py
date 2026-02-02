@@ -27,7 +27,7 @@ from core.tools.entities.tool_entities import (
 )
 from core.tools.tool_manager import ToolManager
 from core.tools.utils.message_transformer import ToolFileMessageTransformer
-from core.variables.segments import ArrayFileSegment, FileSegment, StringSegment
+from core.variables.segments import ArrayAnySegment, ArrayFileSegment, FileSegment, NoneSegment, StringSegment
 from core.workflow.enums import (
     NodeType,
     SystemVariableKey,
@@ -169,7 +169,11 @@ class AgentNode(Node[AgentNodeData]):
         variable_pool: VariablePool,
         selector: Sequence[str],
     ) -> Sequence[File]:
-        """Fetch files from a variable selector."""
+        """Fetch files from a variable selector.
+
+        This method mirrors the behavior of llm_utils.fetch_files() to maintain
+        consistency between LLM and Agent nodes.
+        """
         variable = variable_pool.get(list(selector))
         if variable is None:
             return []
@@ -177,6 +181,10 @@ class AgentNode(Node[AgentNodeData]):
             return [variable.value]
         elif isinstance(variable, ArrayFileSegment):
             return variable.value
+        elif isinstance(variable, (NoneSegment, ArrayAnySegment)):
+            return []
+        # For unexpected variable types, return empty list to maintain robustness
+        # This matches the defensive behavior needed for agent nodes
         return []
 
     def _generate_agent_parameters(
